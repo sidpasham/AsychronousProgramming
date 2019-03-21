@@ -27,46 +27,109 @@ namespace AsyncPrograming
             return websites;
         }
 
-        public List<string> GetWebsiteContentLengthSync()
+        public List<string> GetWebsiteContentLengthSync(IProgress<ProgressBarModel> progress)
         {
             var websites = GetWebsites();
 
-            var websitecontents = DownloadDataSync(websites);
+            List<string> websiteContents = new List<string>();
 
-            return websitecontents;
-
-        }
-
-        public List<string> DownloadDataSync(List<string> websites)
-        {
-            List<string> lstwebsiteContent = new List<string>();
-            WebClient client = new WebClient();
+            ProgressBarModel progressModel = new ProgressBarModel();
 
             foreach (var site in websites)
             {
-                var content = client.DownloadString(site);
-                lstwebsiteContent.Add($"The String Count for website {site} is {content.Length}");
+                var content = DownloadDataSync(site);
+                websiteContents.Add(content);
+                progressModel.ProgressPercentage = websiteContents.Count / websites.Count;
+                progressModel.ProgressMesssage = $"Processing Files {site}";
             }
-
-            return lstwebsiteContent;
-
+            return websiteContents;
         }
 
-        public Task<List<string>> DownloadDataAsync(List<string> websites)
+        public List<string> GetWebsiteContentLengthParallelSync()
         {
-            List<string> lstwebsiteContent = new List<string>();
-            WebClient client = new WebClient();
+            var websites = GetWebsites();
+            List<string> websiteContents = new List<string>();
 
-            var tasks = new List<Task<string>>();
+            Parallel.ForEach<string>(websites, (site) =>
+            {
+                var content = DownloadDataSync(site);
+                websiteContents.Add(content);
+            });
+
+            return websiteContents;
+        }
+
+        public async Task<List<string>> GetWebsiteContentLengthAsync()
+        {
+            var websites = GetWebsites();
+
+            List<string> websiteContents = new List<string>();
 
             foreach (var site in websites)
             {
-                tasks.Add(client.DownloadStringAsync(site);
-                var content = client.DownloadString(site);
-                lstwebsiteContent.Add($"The String Count for website {site} is {content.Length}");
+                var content = await DownloadDataAsync(site);
+                websiteContents.Add(content);
+
+            }
+            return websiteContents;
+        }
+
+        public async Task<List<string>> GetWebsiteContentLengthParallelAsync()
+        {
+            var websites = GetWebsites();
+            List<Task<string>> tasks = new List<Task<string>>();
+
+            foreach (var site in websites)
+            {
+                var content = DownloadDataAsync(site);
+                tasks.Add(content);
             }
 
-            return lstwebsiteContent;
+            var websiteContents = await Task.WhenAll(tasks);
+
+            return new List<string>(websiteContents);
+        }
+
+        public async Task<List<string>> GetWebsiteContentLengthParallelAsync_V2()
+        {
+            var websites = GetWebsites();
+            List<string> websiteContents = new List<string>();
+
+            await Task.Run(() =>
+            {
+                Parallel.ForEach<string>(websites, (site) =>
+                {
+                    var content = DownloadDataSync(site);
+                    websiteContents.Add(content);
+                });
+            });           
+
+            return websiteContents;
+        }
+
+        public string DownloadDataSync(string website)
+        {
+            string websitecontent = "";
+            WebClient client = new WebClient();
+
+            var content = client.DownloadString(website);
+
+            websitecontent = ($"The String Count for website {website} is {content.Length}");
+
+            return websitecontent;
+
+        }
+
+        public async Task<string> DownloadDataAsync(string website)
+        {
+            string websitecontent = "";
+            WebClient client = new WebClient();
+
+            var content = await client.DownloadStringTaskAsync(website);
+
+            websitecontent = ($"The String Count for website {website} is {content.Length}");
+
+            return websitecontent;
 
         }
     }

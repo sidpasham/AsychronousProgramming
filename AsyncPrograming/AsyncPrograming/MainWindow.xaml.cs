@@ -21,34 +21,47 @@ namespace AsyncPrograming
     /// </summary>
     public partial class MainWindow : Window
     {
-        CancellationTokenSource cts = new CancellationTokenSource();
-
+        private CancellationTokenSource cts;
+        private UtilMethods util;
         public MainWindow()
         {
             InitializeComponent();
+            cts = new CancellationTokenSource();
+            util = new UtilMethods();
         }
 
         private void btnSync_Click(object sender, RoutedEventArgs e)
         {
-            UtilMethods util = new UtilMethods();
-            var websitecontents = util.GetWebsiteContentLengthSync();
-
-            listBox.ItemsSource = websitecontents;
+            Progress<ProgressBarModel> progress = new Progress<ProgressBarModel>();
+            progress.ProgressChanged += ReportProgress;
+            DisplayContentInListBox(util.GetWebsiteContentLengthSync(progress));
         }
 
-        private void btnasynchronous_Click(object sender, RoutedEventArgs e)
+        private void ReportProgress(object sender, ProgressBarModel e)
         {
-
+            ProgressBar bar = new ProgressBar();
+            bar.Value = e.ProgressPercentage;
+            listBox.ItemsSource = e.ProgressMesssage + Environment.NewLine;
         }
 
-        private void btnparallelasynchronous_Click(object sender, RoutedEventArgs e)
+        private async void btnasynchronous_Click(object sender, RoutedEventArgs e)
         {
+            DisplayContentInListBox(await util.GetWebsiteContentLengthAsync());
+        }
 
+        private async void btnparallelasynchronous_Click(object sender, RoutedEventArgs e)
+        {            
+            DisplayContentInListBox(await util.GetWebsiteContentLengthParallelAsync());
         }
 
         private void btncancel_Click(object sender, RoutedEventArgs e)
         {
 
+        }
+
+        private void DisplayContentInListBox(List<string> lstcontent)
+        {
+            listBox.ItemsSource = lstcontent;
         }
     }
 }
