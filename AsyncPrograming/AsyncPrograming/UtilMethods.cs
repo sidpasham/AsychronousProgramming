@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace AsyncPrograming
@@ -27,7 +28,7 @@ namespace AsyncPrograming
             return websites;
         }
 
-        public List<string> GetWebsiteContentLengthSync(IProgress<ProgressBarModel> progress)
+        public List<string> GetWebsiteContentLengthSync(IProgress<ProgressBarModel> progress, CancellationToken token)
         {
             var websites = GetWebsites();
 
@@ -37,10 +38,12 @@ namespace AsyncPrograming
 
             foreach (var site in websites)
             {
+                token.ThrowIfCancellationRequested();
                 var content = DownloadDataSync(site);
                 websiteContents.Add(content);
-                progressModel.ProgressPercentage = websiteContents.Count / websites.Count;
+                progressModel.ProgressPercentage = (websiteContents.Count * 100) / websites.Count;
                 progressModel.ProgressMesssage = $"Processing Files {site}";
+                progress.Report(progressModel);
             }
             return websiteContents;
         }
@@ -59,16 +62,21 @@ namespace AsyncPrograming
             return websiteContents;
         }
 
-        public async Task<List<string>> GetWebsiteContentLengthAsync()
+        public async Task<List<string>> GetWebsiteContentLengthAsync(IProgress<ProgressBarModel> progress, CancellationToken token)
         {
             var websites = GetWebsites();
 
             List<string> websiteContents = new List<string>();
+            ProgressBarModel progressModel = new ProgressBarModel();
 
             foreach (var site in websites)
             {
+                token.ThrowIfCancellationRequested();
                 var content = await DownloadDataAsync(site);
                 websiteContents.Add(content);
+                progressModel.ProgressPercentage = (websiteContents.Count* 100)/ websites.Count;
+                progressModel.ProgressMesssage = $"Processing Files {site}";
+                progress.Report(progressModel);
 
             }
             return websiteContents;
@@ -90,17 +98,22 @@ namespace AsyncPrograming
             return new List<string>(websiteContents);
         }
 
-        public async Task<List<string>> GetWebsiteContentLengthParallelAsync_V2()
+        public async Task<List<string>> GetWebsiteContentLengthParallelAsync_V2(IProgress<ProgressBarModel> progress, CancellationToken token)
         {
             var websites = GetWebsites();
             List<string> websiteContents = new List<string>();
+            ProgressBarModel progressModel = new ProgressBarModel();
 
             await Task.Run(() =>
             {
                 Parallel.ForEach<string>(websites, (site) =>
                 {
+                    token.ThrowIfCancellationRequested();
                     var content = DownloadDataSync(site);
                     websiteContents.Add(content);
+                    progressModel.ProgressPercentage = (websiteContents.Count * 100) / websites.Count;
+                    progressModel.ProgressMesssage = $"Processing Files {site}";
+                    progress.Report(progressModel);
                 });
             });           
 

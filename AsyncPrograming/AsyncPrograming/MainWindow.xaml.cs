@@ -23,6 +23,7 @@ namespace AsyncPrograming
     {
         private CancellationTokenSource cts;
         private UtilMethods util;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -34,29 +35,48 @@ namespace AsyncPrograming
         {
             Progress<ProgressBarModel> progress = new Progress<ProgressBarModel>();
             progress.ProgressChanged += ReportProgress;
-            DisplayContentInListBox(util.GetWebsiteContentLengthSync(progress));
+            DisplayContentInListBox(util.GetWebsiteContentLengthSync(progress, cts.Token));
         }
 
         private void ReportProgress(object sender, ProgressBarModel e)
         {
-            ProgressBar bar = new ProgressBar();
-            bar.Value = e.ProgressPercentage;
-            listBox.ItemsSource = e.ProgressMesssage + Environment.NewLine;
+            progressbar.Value = e.ProgressPercentage;
+            DisplayContentInListBox(new List<string> { e.ProgressMesssage });
         }
 
         private async void btnasynchronous_Click(object sender, RoutedEventArgs e)
         {
-            DisplayContentInListBox(await util.GetWebsiteContentLengthAsync());
+            Progress<ProgressBarModel> progress = new Progress<ProgressBarModel>();
+            progress.ProgressChanged += ReportProgress;
+            try
+            {
+                DisplayContentInListBox(await util.GetWebsiteContentLengthAsync(progress, cts.Token));
+            }            
+            catch (OperationCanceledException ex)
+            {
+                DisplayContentInListBox(new List<string> { "thread Cancelled" });
+            }
         }
 
         private async void btnparallelasynchronous_Click(object sender, RoutedEventArgs e)
-        {            
-            DisplayContentInListBox(await util.GetWebsiteContentLengthParallelAsync());
+        {
+            Progress<ProgressBarModel> progress = new Progress<ProgressBarModel>();
+            progress.ProgressChanged += ReportProgress;
+            //DisplayContentInListBox(await util.GetWebsiteContentLengthParallelAsync(progress));
+            try
+            {
+                DisplayContentInListBox(await util.GetWebsiteContentLengthParallelAsync_V2(progress, cts.Token));
+            }
+            catch(OperationCanceledException ex)
+            {
+                DisplayContentInListBox(new List<string> { "thread Cancelled" });
+            }
+            
         }
 
         private void btncancel_Click(object sender, RoutedEventArgs e)
         {
-
+            cts.Cancel();
         }
 
         private void DisplayContentInListBox(List<string> lstcontent)
